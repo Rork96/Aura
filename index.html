@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ПРОТОКОЛ: ДИСЦИПЛІНА</title>
+    
+    <!-- PWA Manifest & Icons -->
+    <meta name="theme-color" content="#020617">
+    <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogItCf0YDQvtGC0L7QutC+0Ls6INCU0LjRgdGG0LjQv9C70ZbQvdCwIiwKICAic2hvcnRfbmFtZSI6ICLQn9GA0L7RgtC+0LrQvtC7IiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwMjA2MTciLAogICJ0aGVtZV9jb2xvciI6ICIjMDIwNjE3IiwKICAiaWNvbnMiOiBbe3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlpXY2dZV05qYjI1MGFXOXVQU0l4TUM0d0lDSm9aV2xuYUhROUlqRXdNQzR3SWlCeWVYQnZjbDkwZVhCbFBTSXhNRGdnTVEwS0lDaHpaWEoyYVdObFgzUmxjM1FnZEhsd1pUMGlibUZzYzJVaVhTSStJRDBLTEM4K1BDOWxlRzFzUGcwSyIsICJzaXplcyI6ICIxOTJ4MTkyIiwgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCJ9XX0=">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', "Liberation Mono", "Courier New", 'monospace'] }
+                }
+            }
+        }
+    </script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { background-color: #020617; color: #e2e8f0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #10b981; cursor: pointer; margin-top: -6px; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #1e293b; border-radius: 2px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Custom Icons Components (Lucide SVG strings wrapped in React components) ---
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const icons = {
+                ShieldAlert: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield-alert ${className}"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>`,
+                RefreshCcw: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-ccw ${className}"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21v-5h5"/></svg>`,
+                BrainCircuit: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain-circuit ${className}"><path d="M12 4.5a2.5 2.5 0 0 0-4.96-.46 2.5 2.5 0 0 0-1.98 3 2.5 2.5 0 0 0-1.32 4.24 3 3 0 0 0 .34 5.58 2.5 2.5 0 0 0 2.96 3.08 2.5 2.5 0 0 0 4.91.05L12 20V4.5Z"/><path d="M16 8V5c0-1.1.9-2 2-2"/><path d="M12 13h4"/><path d="M12 18h6a2 2 0 0 1 2 2v1"/><path d="M12 8h8"/><circle cx="16" cy="13" r="2"/><circle cx="18" cy="3" r="2"/><circle cx="20" cy="21" r="2"/><circle cx="20" cy="8" r="2"/></svg>`,
+                Tv: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-tv ${className}"><rect width="20" height="15" x="2" y="7" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>`,
+                Droplets: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-droplets ${className}"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7 2.9 7 2.9s-2.29 4.22-3.29 5.16c-1.14.93-1.71 2.03-1.71 3.19C2 14.47 3.8 16.3 7 16.3Z"/><path d="M20.5 10.46c-1 .94-1.5 1.85-1.5 2.79 0 1.76 1.34 3.2 3 3.2s3-1.44 3-3.2c0-.94-.5-1.85-1.5-2.79S20.5 5.5 20.5 5.5s-2 3.96-3 4.96Z"/><path d="M13.5 18.5c1.45 0 2.5-1.18 2.5-2.65 0-1.07-.63-1.84-1.5-2.58s-2.5-3.27-2.5-3.27-1.63 2.53-2.5 3.27c-.87.74-1.5 1.51-1.5 2.58 0 1.47 1.05 2.65 2.5 2.65Z"/></svg>`,
+                Smartphone: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-smartphone ${className}"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`,
+                Briefcase: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-briefcase ${className}"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>`,
+                Code2: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-code-2 ${className}"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>`,
+                Activity: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-activity ${className}"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>`,
+                CheckCircle2: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle-2 ${className}"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`,
+                Circle: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle ${className}"><circle cx="12" cy="12" r="10"/></svg>`,
+                Skull: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-skull ${className}"><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M8 20v2h8v-2"/><path d="m12.5 17-.5-1-.5 1h1z"/><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"/></svg>`
+            };
+            return <div dangerouslySetInnerHTML={{ __html: icons[name] }} className="inline-block" />;
+        };
+
+        const initialTasks = [
+            { id: 1, title: 'Крижаний душ (04:50)', desc: 'Збий тривожність.', icon: 'Droplets', completed: false },
+            { id: 2, title: '0 екранів 1 год', desc: 'Ніяких новин зранку.', icon: 'Smartphone', completed: false },
+            { id: 3, title: '5 резюме', desc: 'JobifAi в дію.', icon: 'Briefcase', completed: false },
+            { id: 4, title: 'Deep Work', desc: 'Код/Архітектура.', icon: 'Code2', completed: false },
+            { id: 5, title: 'Кардіо', desc: 'Випалюй метаболіти.', icon: 'Activity', completed: false },
+        ];
+
+        // --- Custom Hook for LocalStorage ---
+        function useStickyState(defaultValue, key) {
+            const [value, setValue] = useState(() => {
+                const stickyValue = window.localStorage.getItem(key);
+                return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
+            });
+            useEffect(() => {
+                window.localStorage.setItem(key, JSON.stringify(value));
+            }, [key, value]);
+            return [value, setValue];
+        }
+
+        const App = () => {
+            // Load state from localStorage
+            const [sobrietyStart, setSobrietyStart] = useStickyState(Date.now(), 'recovery_sobrietyStart');
+            const [tasks, setTasks] = useStickyState(initialTasks, 'recovery_tasks');
+            const [audit, setAudit] = useStickyState({ newsTime: 0, shortsTime: 0, animeEpisodes: 0 }, 'recovery_audit');
+            const [workHours, setWorkHours] = useStickyState(0, 'recovery_workHours');
+            const [lastUpdated, setLastUpdated] = useStickyState(new Date().toDateString(), 'recovery_lastUpdated');
+
+            const [now, setNow] = useState(Date.now());
+            const [showRelapseModal, setShowRelapseModal] = useState(false);
+
+            // Daily reset logic
+            useEffect(() => {
+                const today = new Date().toDateString();
+                if (today !== lastUpdated) {
+                    setTasks(initialTasks);
+                    setAudit({ newsTime: 0, shortsTime: 0, animeEpisodes: 0 });
+                    setWorkHours(0);
+                    setLastUpdated(today);
+                }
+            }, [lastUpdated, setLastUpdated, setTasks, setAudit, setWorkHours]);
+
+            // Timer update
+            useEffect(() => {
+                const interval = setInterval(() => setNow(Date.now()), 1000);
+                return () => clearInterval(interval);
+            }, []);
+
+            const toggleTask = (taskId) => {
+                setTasks(tasks.map(task => 
+                    task.id === taskId ? { ...task, completed: !task.completed } : task
+                ));
+            };
+
+            const handleRelapse = () => {
+                setSobrietyStart(Date.now());
+                setTasks(initialTasks);
+                setAudit({ newsTime: 0, shortsTime: 0, animeEpisodes: 0 });
+                setWorkHours(0);
+                setShowRelapseModal(false);
+            };
+
+            const diff = Math.max(0, now - sobrietyStart);
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diff / 1000 / 60) % 60);
+            const seconds = Math.floor((diff / 1000) % 60);
+
+            const completedTasks = tasks.filter(t => t.completed).length;
+            const degradationScore = (audit.newsTime * 2) + (audit.shortsTime * 3) + audit.animeEpisodes;
+            const isFailing = degradationScore > 5;
+
+            return (
+                <div className="min-h-screen p-4 md:p-8">
+                    <div className="max-w-4xl mx-auto space-y-6">
+                        
+                        <header className="flex justify-between items-center border-b border-slate-800 pb-4">
+                            <div>
+                                <h1 className="text-xl md:text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
+                                    <Icon name="ShieldAlert" className="text-red-500" />
+                                    Термінал Аудиту
+                                </h1>
+                            </div>
+                            <button 
+                                onClick={() => setShowRelapseModal(true)}
+                                className="p-2 bg-red-950/20 text-red-500 border border-red-900 rounded hover:bg-red-900/40"
+                                title="Зрив"
+                            >
+                                <Icon name="RefreshCcw" size={20} />
+                            </button>
+                        </header>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
+                            {/* Таймер */}
+                            <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                                <h2 className="text-slate-500 text-xs uppercase tracking-widest font-bold mb-2">Чистий час</h2>
+                                <div className="text-6xl font-black text-white tabular-nums tracking-tighter leading-none mb-1">
+                                    {days}
+                                </div>
+                                <div className="text-slate-600 text-[10px] font-bold uppercase tracking-widest mb-4">Днів</div>
+                                
+                                <div className="flex gap-4 border-t border-slate-800 pt-4">
+                                    <div>
+                                        <div className="text-lg font-bold text-slate-300 tabular-nums">{hours.toString().padStart(2, '0')}</div>
+                                        <div className="text-[10px] text-slate-500 uppercase">Год</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-lg font-bold text-slate-300 tabular-nums">{minutes.toString().padStart(2, '0')}</div>
+                                        <div className="text-[10px] text-slate-500 uppercase">Хв</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-lg font-bold text-red-500 tabular-nums">{seconds.toString().padStart(2, '0')}</div>
+                                        <div className="text-[10px] text-slate-500 uppercase">Сек</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Задачі */}
+                            <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden relative">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                                <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
+                                    <h2 className="text-slate-500 text-xs uppercase tracking-widest font-bold">Мінімум</h2>
+                                    <span className="text-xs font-bold text-slate-300">{completedTasks} / {tasks.length}</span>
+                                </div>
+                                <div className="divide-y divide-slate-800/50 max-h-64 overflow-y-auto">
+                                    {tasks.map((task) => (
+                                        <div 
+                                            key={task.id} 
+                                            onClick={() => toggleTask(task.id)}
+                                            className={`p-3 flex items-center gap-3 cursor-pointer hover:bg-slate-800/30 ${task.completed ? 'opacity-50' : ''}`}
+                                        >
+                                            {task.completed ? <Icon name="CheckCircle2" className="text-blue-500 shrink-0" size={18} /> : <Icon name="Circle" className="text-slate-600 shrink-0" size={18} />}
+                                            <Icon name={task.icon} className="text-slate-500 shrink-0" size={16} />
+                                            <div>
+                                                <div className={`text-sm font-bold ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}>{task.title}</div>
+                                                <div className="text-[10px] text-slate-500 hidden md:block">{task.desc}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Творець */}
+                            <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
+                                <h2 className="text-slate-500 text-xs uppercase tracking-widest font-bold mb-4 flex items-center gap-2">
+                                    <Icon name="BrainCircuit" size={14} /> Творець: Deep Work
+                                </h2>
+                                <div className="flex items-center gap-4">
+                                    <span className="text-emerald-400 font-bold w-12 text-right">{workHours}г</span>
+                                    <input 
+                                        type="range" min="0" max="10" step="0.5" value={workHours} 
+                                        onChange={(e) => setWorkHours(Number(e.target.value))}
+                                        className="flex-1"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Ескапізм */}
+                            <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
+                                <h2 className="text-slate-500 text-xs uppercase tracking-widest font-bold mb-4 flex items-center gap-2">
+                                    <Icon name="Tv" size={14} /> Ескапізм: Дешевий дофамін
+                                </h2>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-400">Новини/Стрес</span>
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={() => setAudit({...audit, newsTime: Math.max(0, audit.newsTime - 0.5)})} className="px-2 bg-slate-800 rounded">-</button>
+                                            <span className="w-8 text-center text-slate-200">{audit.newsTime}</span>
+                                            <button onClick={() => setAudit({...audit, newsTime: audit.newsTime + 0.5})} className="px-2 bg-slate-800 rounded">+</button>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-400">Shorts/Reels</span>
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={() => setAudit({...audit, shortsTime: Math.max(0, audit.shortsTime - 0.5)})} className="px-2 bg-slate-800 rounded">-</button>
+                                            <span className="w-8 text-center text-slate-200">{audit.shortsTime}</span>
+                                            <button onClick={() => setAudit({...audit, shortsTime: audit.shortsTime + 0.5})} className="px-2 bg-slate-800 rounded">+</button>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-slate-400">Аніме (серії)</span>
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={() => setAudit({...audit, animeEpisodes: Math.max(0, audit.animeEpisodes - 1)})} className="px-2 bg-slate-800 rounded">-</button>
+                                            <span className="w-8 text-center text-slate-200">{audit.animeEpisodes}</span>
+                                            <button onClick={() => setAudit({...audit, animeEpisodes: audit.animeEpisodes + 1})} className="px-2 bg-slate-800 rounded">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {isFailing && <div className="mt-4 text-xs text-red-500 font-bold uppercase tracking-wider text-center bg-red-950/30 p-2 rounded">Критичний рівень деградації</div>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Modal */}
+                    {showRelapseModal && (
+                        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
+                            <div className="bg-slate-950 border border-red-900 rounded-lg p-6 max-w-sm w-full text-center">
+                                <Icon name="Skull" size={48} className="text-red-500 mx-auto mb-4 animate-pulse" />
+                                <h2 className="text-xl font-black text-white uppercase mb-2">Здався?</h2>
+                                <p className="text-slate-400 text-xs mb-6">Ти обнуляєш свій прогрес. Зафіксувати провал?</p>
+                                <div className="flex flex-col gap-2">
+                                    <button onClick={handleRelapse} className="p-3 bg-red-950 text-red-500 text-sm font-bold uppercase rounded">Так, я зірвався</button>
+                                    <button onClick={() => setShowRelapseModal(false)} className="p-3 bg-slate-800 text-white text-sm font-bold uppercase rounded">Відміна</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+        // --- Service Worker for PWA (Installable without HTTPS setup just for local testing/preview) ---
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                self.addEventListener('install', (e) => e.waitUntil(self.skipWaiting()));
+                self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+                self.addEventListener('fetch', (e) => {});
+            `;
+            const blob = new Blob([swCode], {type: 'application/javascript'});
+            navigator.serviceWorker.register(URL.createObjectURL(blob));
+        }
+    </script>
+</body>
+</html>
