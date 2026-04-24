@@ -10,7 +10,10 @@ import {
   Swords,
   Timer,
   Zap,
-  Activity
+  Activity,
+  Smartphone,
+  Tv,
+  AlertTriangle
 } from 'lucide-react';
 
 const App = () => {
@@ -19,83 +22,115 @@ const App = () => {
   const [mp, setMp] = useState(100); // Mana/Dopamine Focus
   const [level, setLevel] = useState(1);
   const [inPenaltyZone, setInPenaltyZone] = useState(false);
-
-  // Time remaining for Daily Quest (Reset at midnight)
   const [timeLeft, setTimeLeft] = useState('');
 
-  // Daily Quests (The "Solo Leveling" Minimum)
+  // Awareness Check Modal State
+  const [showAwareness, setShowAwareness] = useState(false);
+  const [pendingDistraction, setPendingDistraction] = useState(null);
+  const [awarenessReason, setAwarenessReason] = useState('');
+
+  // Daily Quests
   const [quests, setQuests] = useState([
     { id: 1, title: '[Сила] Силове тренування до відмови', desc: 'Випалити метаболіти ТГК. 100 віджимань, 100 присідань.', completed: false, icon: <Activity size={18} /> },
     { id: 2, title: '[Витривалість] Крижаний душ (04:50)', desc: 'Зняти дебаф тривожності.', completed: false, icon: <Droplets size={18} /> },
     { id: 3, title: '[Інтелект] 2 години Deep Work', desc: 'JobifAi або Aura. Жодних відволікань.', completed: false, icon: <Brain size={18} /> },
-    { id: 4, title: '[Чистота] Zero THC & Zero Shorts', desc: 'Утриматися від отрути та викрадачів часу.', completed: false, icon: <ShieldAlert size={18} /> },
+    { id: 4, title: '[Чистота] Zero THC', desc: 'Жодної затяжки. Жодних виправдань.', completed: false, icon: <ShieldAlert size={18} /> },
   ]);
 
+  // Distractions (Dopamine Leaks)
+  const distractions = [
+    { id: 'shorts', title: 'YouTube Shorts / Reels', cost: 40, icon: <Smartphone size={16} /> },
+    { id: 'news', title: 'Новини / Тривога', cost: 30, icon: <AlertTriangle size={16} /> },
+    { id: 'anime', title: 'Аніме (Епізод)', cost: 35, icon: <Tv size={16} /> },
+  ];
+
   useEffect(() => {
-    // Calculate time until midnight
     const updateTimer = () => {
       const now = new Date();
       const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
       const diff = tomorrow - now;
-
       const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
       const m = Math.floor((diff / 1000 / 60) % 60);
       const s = Math.floor((diff / 1000) % 60);
-
       setTimeLeft(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
     };
-
     updateTimer();
     const timerId = setInterval(updateTimer, 1000);
     return () => clearInterval(timerId);
   }, []);
 
+  // Check for auto-penalty when MP reaches 0
+  useEffect(() => {
+    if (mp <= 0 && !inPenaltyZone) {
+      triggerPenalty(true);
+    }
+  }, [mp, inPenaltyZone]);
+
   const toggleQuest = (id) => {
-    if (inPenaltyZone) return; // Cannot complete normal quests while in penalty
+    if (inPenaltyZone) return;
     
     const updatedQuests = quests.map(q => 
       q.id === id ? { ...q, completed: !q.completed } : q
     );
     setQuests(updatedQuests);
 
-    // Simple leveling logic based on completed tasks
     const completedCount = updatedQuests.filter(q => q.completed).length;
     if (completedCount === quests.length && hp > 0) {
       setLevel(level + 1);
-      setMp(100); // Restore Mana on completion
     }
   };
 
-  const triggerPenalty = () => {
+  const handleDistractionClick = (dist) => {
+    if (inPenaltyZone) return;
+    setPendingDistraction(dist);
+    setShowAwareness(true);
+  };
+
+  const submitDistraction = () => {
+    if (!pendingDistraction || awarenessReason.length < 10) return;
+    
+    setMp(prev => Math.max(0, prev - pendingDistraction.cost));
+    setShowAwareness(false);
+    setAwarenessReason('');
+    setPendingDistraction(null);
+  };
+
+  const triggerPenalty = (auto = false) => {
     setInPenaltyZone(true);
-    setHp(10); // Massive HP drop
-    setMp(0);  // Drain Mana
+    setHp(10); 
+    if (!auto) setMp(0);
+    setShowAwareness(false);
   };
 
   const completePenalty = () => {
     setInPenaltyZone(false);
-    setHp(50); // Recover some HP
-    // Quests remain uncompleted for the day to force completion
+    setHp(50); 
+    setMp(20); // Only a little dopamine returns
+  };
+
+  const criticalFailure = () => {
+    triggerPenalty(false);
+    setHp(0);
   };
 
   const progress = (quests.filter(q => q.completed).length / quests.length) * 100;
 
   return (
     <div className="min-h-screen bg-black text-slate-200 p-4 md:p-8 font-mono select-none">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-6">
         
         {/* System Header */}
         <header className="border-b-2 border-blue-900/50 pb-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl font-black text-blue-500 tracking-widest uppercase flex items-center gap-3">
-                <ShieldAlert size={28} className={inPenaltyZone ? "text-red-500" : "text-blue-500"} />
-                СИСТЕМА АКТИВОВАНА
+                <ShieldAlert size={28} className={inPenaltyZone ? "text-red-500" : hp === 0 ? "text-red-800" : "text-blue-500"} />
+                {hp === 0 ? "СИСТЕМА ЗАБЛОКОВАНА" : inPenaltyZone ? "КРИТИЧНИЙ РІВЕНЬ" : "СИСТЕМА АКТИВОВАНА"}
               </h1>
-              <p className="text-blue-800 text-sm mt-1 uppercase tracking-wider">Гравець: Pavlo | Клас: Невідомо</p>
+              <p className="text-blue-800 text-sm mt-1 uppercase tracking-wider">Гравець: Pavlo | Клас: Невідомо | Рівень: {level}</p>
             </div>
-            <div className="text-right">
-              <div className="text-slate-500 text-xs uppercase mb-1">До закінчення квесту</div>
+            <div className="text-left md:text-right">
+              <div className="text-slate-500 text-xs uppercase mb-1">До скидання квестів</div>
               <div className={`text-2xl font-bold font-sans tabular-nums ${inPenaltyZone ? 'text-red-500' : 'text-blue-400'}`}>
                 {timeLeft}
               </div>
@@ -105,7 +140,7 @@ const App = () => {
 
         {/* Player Status Bars */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-lg relative overflow-hidden">
+          <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-lg relative overflow-hidden shadow-lg">
             <div className="flex justify-between items-end mb-2">
               <span className="text-red-500 font-bold tracking-widest flex items-center gap-2">
                 <Activity size={16} /> HP (Тверезість)
@@ -114,13 +149,13 @@ const App = () => {
             </div>
             <div className="h-4 bg-slate-950 rounded-full border border-slate-800 overflow-hidden">
               <div 
-                className="h-full bg-red-600 transition-all duration-500 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
+                className={`h-full transition-all duration-500 shadow-[0_0_10px_rgba(220,38,38,0.5)] ${hp <= 10 ? 'bg-red-800 animate-pulse' : 'bg-red-600'}`}
                 style={{ width: `${hp}%` }}
               ></div>
             </div>
           </div>
 
-          <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-lg relative overflow-hidden">
+          <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-lg relative overflow-hidden shadow-lg">
             <div className="flex justify-between items-end mb-2">
               <span className="text-blue-500 font-bold tracking-widest flex items-center gap-2">
                 <Zap size={16} /> MP (Дофамін/Фокус)
@@ -129,123 +164,223 @@ const App = () => {
             </div>
             <div className="h-4 bg-slate-950 rounded-full border border-slate-800 overflow-hidden">
               <div 
-                className="h-full bg-blue-600 transition-all duration-500 shadow-[0_0_10px_rgba(37,99,235,0.5)]"
+                className={`h-full bg-blue-600 transition-all duration-500 shadow-[0_0_10px_rgba(37,99,235,0.5)] ${mp <= 30 ? 'bg-orange-500' : ''}`}
                 style={{ width: `${mp}%` }}
               ></div>
             </div>
           </div>
         </div>
 
-        {/* Main Content Area */}
-        {inPenaltyZone ? (
-          // Penalty Zone View
-          <div className="bg-red-950/20 border-2 border-red-900 rounded-xl p-8 relative overflow-hidden animate-pulse">
-            <div className="absolute inset-0 bg-red-900/10 z-0"></div>
-            <div className="relative z-10 flex flex-col items-center text-center space-y-6">
-              <Skull className="text-red-500" size={64} />
-              <div>
-                <h2 className="text-3xl font-black text-red-500 uppercase mb-2">ШТРАФНА ЗОНА</h2>
-                <p className="text-red-400 font-sans max-w-lg mx-auto">
-                  Гравець провалив щоденний квест або порушив заборону (ТГК/Скролінг). 
-                  Система призначає штрафне завдання для виживання.
-                </p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Main Content Area (2/3 width) */}
+          <div className="lg:col-span-2">
+            {hp === 0 ? (
+               <div className="bg-red-950/20 border-2 border-red-900 rounded-xl p-8 text-center h-full flex flex-col justify-center items-center">
+                 <Skull className="text-red-800 mb-4" size={80} />
+                 <h2 className="text-3xl font-black text-red-600 uppercase mb-2">ГРАВЕЦЬ МЕРТВИЙ</h2>
+                 <p className="text-red-500/70 font-sans">Ти зірвався. Твоя залежність знову перемогла. Оновлюй сторінку і починай з нуля, якщо вистачить сміливості.</p>
+               </div>
+            ) : inPenaltyZone ? (
+              // Penalty Zone View
+              <div className="bg-red-950/20 border-2 border-red-900 rounded-xl p-8 relative overflow-hidden animate-pulse h-full">
+                <div className="absolute inset-0 bg-red-900/10 z-0"></div>
+                <div className="relative z-10 flex flex-col items-center text-center space-y-6">
+                  <Flame className="text-red-500" size={64} />
+                  <div>
+                    <h2 className="text-3xl font-black text-red-500 uppercase mb-2">ШТРАФНА ЗОНА</h2>
+                    <p className="text-red-400 font-sans max-w-lg mx-auto">
+                      Ти спалив свій дофамін або провалив дисципліну. 
+                      Система активувала протокол виживання.
+                    </p>
+                  </div>
+                  
+                  <div className="bg-black/80 border border-red-900/50 p-6 rounded-lg w-full mt-2">
+                    <h3 className="text-white font-bold text-lg mb-4 flex items-center justify-center gap-2">
+                      <Swords className="text-red-500" />
+                      КВЕСТ ВИЖИВАННЯ
+                    </h3>
+                    <ul className="text-red-200 text-left space-y-3 font-sans mb-6 text-sm">
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-500 mt-1">▸</span>
+                        Виконати 300 Берпі (Burpees). Без відпочинку.
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-500 mt-1">▸</span>
+                        Відправити $50 на ЗСУ (ціна твого втраченого часу).
+                      </li>
+                    </ul>
+                    <button 
+                      onClick={completePenalty}
+                      className="w-full py-4 bg-red-900 hover:bg-red-800 text-white font-bold uppercase tracking-widest rounded-lg transition-colors border border-red-700"
+                    >
+                      Штраф Виконано
+                    </button>
+                  </div>
+                </div>
               </div>
+            ) : (
+              // Normal Quest View
+              <div className="bg-slate-900/40 border border-blue-900/30 rounded-xl p-6 shadow-[0_0_30px_rgba(30,58,138,0.1)] h-full">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                    <Timer size={20} />
+                    Щоденний Квест: [Підготовка]
+                  </h2>
+                  <span className="text-emerald-500 text-sm font-bold bg-emerald-950/30 px-2 py-1 rounded">
+                    {quests.filter(q => q.completed).length} / {quests.length}
+                  </span>
+                </div>
+
+                <div className="h-1 w-full bg-slate-900 rounded-full mb-6">
+                  <div 
+                    className="h-full bg-blue-500 transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+
+                <div className="space-y-3">
+                  {quests.map((quest) => (
+                    <div 
+                      key={quest.id}
+                      onClick={() => toggleQuest(quest.id)}
+                      className={`group relative p-4 rounded-lg border cursor-pointer transition-all duration-300 flex items-start gap-4 overflow-hidden
+                        ${quest.completed 
+                          ? 'bg-blue-950/20 border-blue-900/30 text-slate-500' 
+                          : 'bg-black border-slate-800 hover:border-blue-500/50 text-slate-300'
+                        }`}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-600/5 to-blue-600/0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      
+                      <div className="relative z-10 mt-1 flex-shrink-0">
+                        {quest.completed ? (
+                          <CheckCircle2 className="text-blue-500" size={20} />
+                        ) : (
+                          <Circle className="text-slate-600 group-hover:text-blue-500/50 transition-colors" size={20} />
+                        )}
+                      </div>
+                      <div className="relative z-10 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`${quest.completed ? 'text-slate-600' : 'text-blue-400'}`}>
+                            {quest.icon}
+                          </span>
+                          <h3 className={`font-bold tracking-wide ${quest.completed ? 'line-through' : ''}`}>
+                            {quest.title}
+                          </h3>
+                        </div>
+                        <p className={`text-sm font-sans ${quest.completed ? 'text-slate-600' : 'text-slate-400'}`}>
+                          {quest.desc}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Distractions & Auto-Sabotage */}
+          <div className="lg:col-span-1 space-y-6">
+             <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5">
+               <h2 className="text-orange-500 text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                 <AlertTriangle size={16} />
+                 Витік Дофаміну (MP)
+               </h2>
+               <p className="text-xs text-slate-400 font-sans mb-4">
+                 Відкриття ескапістських додатків забирає Ману. Коли MP = 0, тебе кидає у Штрафну Зону.
+               </p>
+               
+               <div className="space-y-3">
+                 {distractions.map(dist => (
+                   <button
+                     key={dist.id}
+                     onClick={() => handleDistractionClick(dist)}
+                     disabled={inPenaltyZone || hp === 0}
+                     className="w-full flex items-center justify-between p-3 bg-black border border-slate-800 hover:border-orange-900/50 rounded group transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                   >
+                     <div className="flex items-center gap-2 text-slate-300 group-hover:text-orange-400 transition-colors text-sm">
+                       {dist.icon}
+                       <span>{dist.title}</span>
+                     </div>
+                     <span className="text-xs font-bold text-orange-500 bg-orange-950/30 px-2 py-1 rounded">
+                       -{dist.cost} MP
+                     </span>
+                   </button>
+                 ))}
+               </div>
+             </div>
+
+             <div className="bg-red-950/20 border border-red-900/30 rounded-xl p-5">
+               <h2 className="text-red-500 text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                 <Skull size={16} />
+                 Зрив (ТГК)
+               </h2>
+               <button 
+                 onClick={criticalFailure}
+                 disabled={hp === 0}
+                 className="w-full py-3 bg-red-950/50 hover:bg-red-900 text-red-500 hover:text-white border border-red-900 rounded font-bold uppercase tracking-wider text-sm transition-colors disabled:opacity-50"
+               >
+                 Я покурив
+               </button>
+             </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Awareness Block Modal (Aura Concept) */}
+      {showAwareness && pendingDistraction && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-950 border border-orange-500/30 rounded-xl max-w-lg w-full p-8 shadow-2xl relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-orange-500"></div>
+            
+            <div className="flex items-center gap-3 text-orange-500 mb-6">
+              <Brain size={32} />
+              <h2 className="text-xl font-black uppercase tracking-widest">Перевірка Усвідомленості</h2>
+            </div>
+            
+            <p className="text-slate-300 font-sans mb-2">
+              Система фіксує спробу зливу дофаміну: <strong className="text-orange-400">{pendingDistraction.title}</strong>.
+            </p>
+            <p className="text-red-400 text-sm font-bold mb-6">
+              Ця дія коштуватиме тобі {pendingDistraction.cost} MP. 
+            </p>
+
+            <div className="space-y-4">
+              <label className="block text-xs uppercase tracking-widest text-slate-500 font-bold">
+                Поясни системі, від чого ти тікаєш зараз:
+              </label>
+              <textarea 
+                value={awarenessReason}
+                onChange={(e) => setAwarenessReason(e.target.value)}
+                placeholder="Мені ліньки робити резюме, тому я хочу подивитись відосики..."
+                className="w-full bg-black border border-slate-800 rounded p-4 text-slate-200 font-sans focus:border-orange-500 focus:outline-none min-h-[100px]"
+              ></textarea>
               
-              <div className="bg-black/50 border border-red-900/50 p-6 rounded-lg w-full max-w-md mt-6">
-                <h3 className="text-white font-bold text-lg mb-4 flex items-center justify-center gap-2">
-                  <Swords className="text-red-500" />
-                  КВЕСТ ВИЖИВАННЯ
-                </h3>
-                <ul className="text-red-200 text-left space-y-3 font-sans mb-6">
-                  <li className="flex items-start gap-2">
-                    <span className="text-red-500 mt-1">▸</span>
-                    Виконати 300 Берпі (Burpees) ДО світанку.
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-red-500 mt-1">▸</span>
-                    Жодних соціальних мереж чи розваг до завершення.
-                  </li>
-                </ul>
+              <div className="flex gap-3 pt-4">
                 <button 
-                  onClick={completePenalty}
-                  className="w-full py-4 bg-red-900 hover:bg-red-800 text-white font-bold uppercase tracking-widest rounded-lg transition-colors border border-red-700"
+                  onClick={() => {
+                    setShowAwareness(false);
+                    setPendingDistraction(null);
+                    setAwarenessReason('');
+                  }}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded uppercase tracking-wider text-sm transition-colors"
                 >
-                  Штраф Виконано
+                  Закрити і працювати
+                </button>
+                <button 
+                  onClick={submitDistraction}
+                  disabled={awarenessReason.length < 10}
+                  className="flex-1 py-3 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-slate-200 font-bold rounded uppercase tracking-wider text-sm transition-colors disabled:opacity-50"
+                >
+                  Злити дофамін
                 </button>
               </div>
             </div>
           </div>
-        ) : (
-          // Normal Quest View
-          <div className="bg-slate-900/40 border border-blue-900/30 rounded-xl p-6 shadow-[0_0_30px_rgba(30,58,138,0.1)]">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2">
-                <Timer size={20} />
-                Щоденний Квест: [Підготовка]
-              </h2>
-              <span className="text-slate-500 text-sm">Рівень {level}</span>
-            </div>
+        </div>
+      )}
 
-            {/* Progress Bar for Quests */}
-            <div className="h-1 w-full bg-slate-900 rounded-full mb-6">
-              <div 
-                className="h-full bg-blue-500 transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              ></div>
-            </div>
-
-            <div className="space-y-3">
-              {quests.map((quest) => (
-                <div 
-                  key={quest.id}
-                  onClick={() => toggleQuest(quest.id)}
-                  className={`group relative p-4 rounded-lg border cursor-pointer transition-all duration-300 flex items-start gap-4 overflow-hidden
-                    ${quest.completed 
-                      ? 'bg-blue-950/20 border-blue-900/30 text-slate-500' 
-                      : 'bg-black border-slate-800 hover:border-blue-500/50 text-slate-300'
-                    }`}
-                >
-                  {/* Subtle hover glow effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-600/5 to-blue-600/0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  
-                  <div className="relative z-10 mt-1 flex-shrink-0">
-                    {quest.completed ? (
-                      <CheckCircle2 className="text-blue-500" size={20} />
-                    ) : (
-                      <Circle className="text-slate-600 group-hover:text-blue-500/50 transition-colors" size={20} />
-                    )}
-                  </div>
-                  <div className="relative z-10 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`${quest.completed ? 'text-slate-600' : 'text-blue-400'}`}>
-                        {quest.icon}
-                      </span>
-                      <h3 className={`font-bold tracking-wide ${quest.completed ? 'line-through' : ''}`}>
-                        {quest.title}
-                      </h3>
-                    </div>
-                    <p className={`text-sm font-sans ${quest.completed ? 'text-slate-600' : 'text-slate-400'}`}>
-                      {quest.desc}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Failsafe Button */}
-            <div className="mt-8 pt-6 border-t border-slate-800 flex justify-end">
-              <button 
-                onClick={triggerPenalty}
-                className="text-xs uppercase tracking-widest text-slate-600 hover:text-red-500 flex items-center gap-2 transition-colors px-3 py-2 border border-transparent hover:border-red-900/50 rounded"
-              >
-                <Flame size={14} />
-                Симуляція Зриву / Невиконання
-              </button>
-            </div>
-          </div>
-        )}
-
-      </div>
     </div>
   );
 };
