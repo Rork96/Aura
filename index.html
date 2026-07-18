@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AuraBreath | Calm & Focus</title>
+    <title>Fitbeet Flow | Fitness & Recovery Breathing</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,21 +18,26 @@
     <style>
         body {
             -webkit-tap-highlight-color: transparent;
-            background-color: #000000; /* Pure black for desktop background */
+            background-color: #000000;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
-        /* Mobile-like container on desktop */
+        /* Mobile-like container on desktop with a slight green/fitness tint */
         .app-container {
             max-width: 440px;
             margin: 0 auto;
             min-height: 100vh;
-            background: linear-gradient(180deg, #09090b 0%, #000000 100%);
+            background: linear-gradient(180deg, #05100a 0%, #000000 100%);
             box-shadow: 0 0 50px rgba(0,0,0,0.5);
             position: relative;
         }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #52525b; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+        
+        /* Smooth category transition */
+        .exercise-list-enter { opacity: 0; transform: translateY(10px); }
+        .exercise-list-enter-active { opacity: 1; transform: translateY(0); transition: opacity 300ms, transform 300ms; }
     </style>
 </head>
 <body class="text-white">
@@ -40,54 +45,141 @@
 
     <!-- React Application Code -->
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
         
-        // ------------------------------------------------------------------
-        // NATIVE SVG ICONS
-        // ------------------------------------------------------------------
         const Icons = {
-            ChevronLeft: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="m15 18-6-6 6-6"/></svg>,
-            Play: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><polygon points="6 3 20 12 6 21 6 3"/></svg>,
-            Pause: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>,
-            RefreshCw: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
-            Wind: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>,
-            Moon: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>,
-            Shield: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-            Zap: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-            Activity: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
-            Waves: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.6 2 5 2 2.3 0 2.3-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.6 2 5 2 2.3 0 2.3-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.6 2 5 2 2.3 0 2.3-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>,
-            Volume2: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>,
-            VolumeX: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>,
-            Settings2: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>,
-            CloudRain: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/></svg>,
-            Droplets: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7 6.22 7 6.22s-2.29 2.84-3.29 3.84C2.57 11.13 2 12.23 2 13.39c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>,
-            UserCircle: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>,
-            Loader2: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
-            X: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-            Eye: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
-            EyeOff: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>,
-            Vibrate: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="m2 8 2 2-2 2 2 2-2 2"/><path d="m22 8-2 2 2 2-2 2 2 2"/><rect width="8" height="14" x="8" y="5" rx="1"/></svg>,
-            VibrateOff: ({className, ...p}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...p}><path d="m2 8 2 2-2 2 2 2-2 2"/><path d="m22 8-2 2 2 2-2 2 2 2"/><line x1="2" y1="2" x2="22" y2="22"/><path d="M8 5h7a1 1 0 0 1 1 1v7m0 4v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V7"/></svg>
+            ChevronLeft: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m15 18-6-6 6-6"/></svg>,
+            Play: (p) => <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polygon points="6 3 20 12 6 21 6 3"/></svg>,
+            Pause: (p) => <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>,
+            RefreshCw: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
+            Wind: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>,
+            Moon: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>,
+            Activity: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+            Volume2: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>,
+            VolumeX: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>,
+            Settings2: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>,
+            Footprints: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/><path d="M16 17h4"/><path d="M4 13h4"/></svg>,
+            HeartPulse: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></svg>,
+            Flame: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>,
+            Droplets: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7 6.22 7 6.22s-2.29 2.84-3.29 3.84C2.57 11.13 2 12.23 2 13.39c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>,
+            EyeOff: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>,
+            Vibrate: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m2 8 2 2-2 2 2 2-2 2"/><path d="m22 8-2 2 2 2-2 2 2 2"/><rect width="8" height="14" x="8" y="5" rx="1"/></svg>,
+            VibrateOff: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m2 8 2 2-2 2 2 2-2 2"/><path d="m22 8-2 2 2 2-2 2 2 2"/><line x1="2" y1="2" x2="22" y2="22"/><path d="M8 5h7a1 1 0 0 1 1 1v7m0 4v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V7"/></svg>,
+            Check: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="20 6 9 17 4 12"/></svg>,
+            Brain: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/></svg>,
+            User: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            Info: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
         };
-
-        const { ChevronLeft, Play, Pause, RefreshCw, Wind, Moon, Shield, Zap, Activity, Waves, Volume2, VolumeX, Settings2, CloudRain, Droplets, UserCircle, Loader2, X, Eye, EyeOff, Vibrate, VibrateOff } = Icons;
-
-        // ------------------------------------------------------------------
-        // CONFIG & DATA
-        // ------------------------------------------------------------------
-        const BG_SOUNDS = {
-          none: { id: 'none', name: 'Silence', type: 'none', icon: <VolumeX className="w-4 h-4" /> },
-          rain: { id: 'rain', name: 'Rain', type: 'rain', icon: <CloudRain className="w-4 h-4" /> },
-          ocean: { id: 'ocean', name: 'Ocean', type: 'ocean', icon: <Droplets className="w-4 h-4" /> },
-          wind: { id: 'wind', name: 'Wind', type: 'wind', icon: <Wind className="w-4 h-4" /> }
-        };
-        const BG_SOUND_KEYS = Object.keys(BG_SOUNDS);
 
         const EXERCISES = [
           {
-            id: 'box', title: 'Box Breathing', subtitle: 'Navy SEALs Method',
-            description: 'Lowers heart rate and increases focus before stressful events.',
-            icon: <Shield className="w-6 h-6" />, color: 'bg-blue-600',
+            id: 'pre-run', 
+            category: 'running',
+            title: 'Pre-Run Rhythm', 
+            subtitle: 'Oxygenate Muscles',
+            description: 'Fast, rhythmic breathing to prime your lungs and muscles before a run.',
+            icon: <Icons.Footprints className="w-6 h-6" />, 
+            color: 'bg-orange-500',
+            details: {
+              position: 'Стоячи рівно',
+              focus: 'Грудна клітка',
+              instructions: 'Робіть швидкі, ритмічні вдихи, щоб наситити м\'язи киснем. Акцентуйте увагу на активному вдиху, видих відбувається природно. Це підготує дихальну систему до навантаження.'
+            },
+            phases: [
+              { name: 'Quick Inhale', command: 'Breathe in', duration: 2, type: 'inhale' },
+              { name: 'Quick Exhale', command: 'Breathe out', duration: 2, type: 'exhale' },
+            ]
+          },
+          {
+            id: 'post-run', 
+            category: 'running',
+            title: 'Post-Run Recovery', 
+            subtitle: 'Lower Heart Rate',
+            description: 'Extended exhales trigger the parasympathetic nervous system to drop your heart rate.',
+            icon: <Icons.HeartPulse className="w-6 h-6" />, 
+            color: 'bg-emerald-500',
+            details: {
+              position: 'Сидячи або напівлежачи',
+              focus: 'Розслаблення плечей',
+              instructions: 'Подовжений видих стимулює блукаючий нерв, миттєво знижуючи пульс після інтенсивного бігу. Дозвольте тілу обм\'якнути на видиху.'
+            },
+            phases: [
+              { name: 'Inhale', command: 'Breathe in deep', duration: 4, type: 'inhale' },
+              { name: 'Hold', command: 'Hold', duration: 2, type: 'hold' },
+              { name: 'Slow Exhale', command: 'Slowly breathe out', duration: 6, type: 'exhale' },
+            ]
+          },
+          {
+            id: 'stitch', 
+            category: 'running',
+            title: 'Side Stitch Relief', 
+            subtitle: 'Relieve Cramps',
+            description: 'Deep belly breathing to stretch the diaphragm and relieve running cramps.',
+            icon: <Icons.Activity className="w-6 h-6" />, 
+            color: 'bg-blue-500',
+            details: {
+              position: 'Стоячи, рука на боці',
+              focus: 'Нижня частина живота',
+              instructions: 'Глибоко вдихайте животом (а не грудьми), щоб максимально розтягнути діафрагму та зняти спазм (кольку) у боці.'
+            },
+            phases: [
+              { name: 'Deep Belly Inhale', command: 'Deep breath in', duration: 3, type: 'inhale' },
+              { name: 'Hold & Stretch', command: 'Hold your breath', duration: 2, type: 'hold' },
+              { name: 'Forceful Exhale', command: 'Exhale fully', duration: 5, type: 'exhale' },
+            ]
+          },
+          {
+            id: 'metabolism', 
+            category: 'focus',
+            title: 'Power Breath', 
+            subtitle: 'Morning Metabolism Boost',
+            description: 'Energetic breathing pattern to wake up the body, increase heat, and boost focus.',
+            icon: <Icons.Flame className="w-6 h-6" />, 
+            color: 'bg-red-600',
+            details: {
+              position: 'Сидячи з прямою спиною',
+              focus: 'Різкий видих носом',
+              instructions: 'Сильний видих змушує прес скорочуватися. Вдих відбувається пасивно. Це генерує тепло, стимулює метаболізм і очищує розум.'
+            },
+            phases: [
+              { name: 'Strong Inhale', command: 'Breathe in strongly', duration: 3, type: 'inhale' },
+              { name: 'Hold', command: 'Hold it', duration: 3, type: 'hold' },
+              { name: 'Strong Exhale', command: 'Breathe out strongly', duration: 3, type: 'exhale' },
+              { name: 'Hold', command: 'Hold empty', duration: 3, type: 'hold' },
+            ]
+          },
+          {
+            id: 'sleep', 
+            category: 'recovery',
+            title: 'Deep Sleep (4-7-8)', 
+            subtitle: 'Accelerate Recovery',
+            description: 'Crucial for weight loss and muscle repair. Lowers cortisol before bed.',
+            icon: <Icons.Moon className="w-6 h-6" />, 
+            color: 'bg-indigo-600',
+            details: {
+              position: 'Лежачи в ліжку',
+              focus: 'Плавний рахунок',
+              instructions: 'Притисніть кінчик язика до піднебіння. Вдихайте через ніс, затримуйте дихання, щоб кисень розійшовся, і робіть потужний видих ротом.'
+            },
+            phases: [
+              { name: 'Inhale', command: 'Breathe in', duration: 4, type: 'inhale' },
+              { name: 'Hold', command: 'Hold', duration: 7, type: 'hold' },
+              { name: 'Power Exhale', command: 'Exhale through mouth', duration: 8, type: 'exhale' },
+            ]
+          },
+          {
+            id: 'box', 
+            category: 'focus',
+            title: 'Box Breathing', 
+            subtitle: 'Pre-Workout Focus',
+            description: 'Find your center before lifting heavy or starting a tough workout.',
+            icon: <Icons.Settings2 className="w-6 h-6" />, 
+            color: 'bg-zinc-600',
+            details: {
+              position: 'Стійка позиція',
+              focus: 'Рівномірність',
+              instructions: 'Уявіть квадрат. Кожна фаза — це одна його сторона. Ця техніка дозволяє швидко зняти мандраж та повернути контроль перед важким підходом.'
+            },
             phases: [
               { name: 'Inhale', command: 'Breathe in', duration: 4, type: 'inhale' },
               { name: 'Hold', command: 'Hold', duration: 4, type: 'hold' },
@@ -96,181 +188,102 @@
             ]
           },
           {
-            id: 'tactical', title: 'Tactical Breathing', subtitle: 'Accuracy Under Pressure',
-            description: 'Deep belly breath. Improves accuracy and emotional control.',
-            icon: <Zap className="w-6 h-6" />, color: 'bg-orange-600',
+            id: 'warmup-flow', 
+            category: 'warmup',
+            title: 'Dynamic Priming', 
+            subtitle: 'Розминка (Warm-up)',
+            description: 'Steady, rhythmic breathing to increase blood flow and prepare joints for movement.',
+            icon: <Icons.Activity className="w-6 h-6" />, 
+            color: 'bg-amber-500',
+            details: {
+              position: 'Під час легких рухів',
+              focus: 'Синхронізація',
+              instructions: 'Дихайте в такт своїм рухам (наприклад, суглобовій гімнастиці). Мета — розігріти тіло та підготувати кардіосистему м\'яко.'
+            },
             phases: [
-              { name: 'Deep Inhale', command: 'Deep breath in', duration: 4, type: 'inhale' },
-              { name: 'Pause', command: 'Pause', duration: 2, type: 'hold' },
-              { name: 'Slow Exhale', command: 'Slowly breathe out', duration: 6, type: 'exhale' },
+              { name: 'Inhale', command: 'Breathe in', duration: 3, type: 'inhale' },
+              { name: 'Exhale', command: 'Breathe out', duration: 3, type: 'exhale' },
             ]
           },
           {
-            id: 'sigh', title: 'Physiological Sigh', subtitle: 'Stanford Protocol',
-            description: 'Double inhale. Fastest scientifically proven way to relieve stress.',
-            icon: <Wind className="w-6 h-6" />, color: 'bg-emerald-600',
+            id: 'stretch-release', 
+            category: 'stretching',
+            title: 'Deep Stretch', 
+            subtitle: 'Стретчінг (Stretching)',
+            description: 'Long exhales signal the nervous system to relax muscles, allowing for deeper flexibility.',
+            icon: <Icons.Wind className="w-6 h-6" />, 
+            color: 'bg-teal-500',
+            details: {
+              position: 'В точці натягнення',
+              focus: 'Розслаблення затисків',
+              instructions: 'Коли відчуваєте дискомфорт у м\'язі, не затримуйте дихання. Зробіть довгий видих, свідомо розслабляючи цю зону.'
+            },
             phases: [
-              { name: 'Long Inhale', command: 'Deep breath in', duration: 3, type: 'inhale' },
-              { name: 'Top-up Inhale', command: 'Short breath in', duration: 1, type: 'inhale' },
-              { name: 'Max Exhale', command: 'Exhale completely', duration: 8, type: 'exhale' },
+              { name: 'Inhale', command: 'Prepare', duration: 4, type: 'inhale' },
+              { name: 'Exhale', command: 'Sink deeper', duration: 8, type: 'exhale' },
             ]
           },
           {
-            id: '478', title: '4-7-8 Breathing', subtitle: 'Sleep Under Pressure',
-            description: 'Military technique to fall asleep rapidly in combat zones.',
-            icon: <Moon className="w-6 h-6" />, color: 'bg-purple-600',
+            id: 'cooldown-drop', 
+            category: 'cooldown',
+            title: 'HR Drop', 
+            subtitle: 'Заминка (Cool-down)',
+            description: 'Slow down your heart rate immediately after intense activity to kickstart recovery.',
+            icon: <Icons.HeartPulse className="w-6 h-6" />, 
+            color: 'bg-cyan-600',
+            details: {
+              position: 'Повільний крок',
+              focus: 'Плавність дихання',
+              instructions: 'Поступово знижуйте темп. Затримка після вдиху допомагає засвоїти кисень, а повільний видих сигналізує мозку, що стрес позаду.'
+            },
             phases: [
               { name: 'Inhale', command: 'Breathe in', duration: 4, type: 'inhale' },
-              { name: 'Hold', command: 'Hold', duration: 7, type: 'hold' },
-              { name: 'Power Exhale', command: 'Exhale forcefully', duration: 8, type: 'exhale' },
+              { name: 'Hold', command: 'Hold', duration: 2, type: 'hold' },
+              { name: 'Exhale', command: 'Slow exhale', duration: 6, type: 'exhale' },
             ]
           },
           {
-            id: 'resonant', title: 'Resonant Breathing', subtitle: '6 Breaths Per Minute',
-            description: 'Builds long-term nervous system resilience and HRV.',
-            icon: <Activity className="w-6 h-6" />, color: 'bg-cyan-600',
+            id: 'run-rhythm', 
+            category: 'running',
+            title: '3:2 Run Cadence', 
+            subtitle: 'Ритм для бігу',
+            description: 'Asymmetric breathing rhythm to prevent side stitches and balance core impact while running.',
+            icon: <Icons.Footprints className="w-6 h-6" />, 
+            color: 'bg-rose-500',
+            details: {
+              position: 'Під час бігу',
+              focus: 'Кроки (3 до 2)',
+              instructions: 'Вдихайте протягом 3 кроків, видихайте протягом 2. Асиметричний ритм чергує ногу, на яку припадає видих, знижуючи ризик спазмів та травм.'
+            },
             phases: [
-              { name: 'Inhale', command: 'Breathe in slowly', duration: 5, type: 'inhale' },
-              { name: 'Exhale', command: 'Breathe out slowly', duration: 5, type: 'exhale' },
-            ]
-          },
-          {
-            id: 'sleep', title: '2-Min Sleep Method', subtitle: 'WWII Fighter Pilots',
-            description: 'Systematic muscle relaxation and visualization. 96% success rate.',
-            icon: <Waves className="w-6 h-6" />, color: 'bg-indigo-900',
-            phases: [
-              { name: 'Relax Face', command: 'Relax face muscles', duration: 10, type: 'hold' },
-              { name: 'Drop Shoulders', command: 'Drop your shoulders', duration: 10, type: 'hold' },
-              { name: 'Relax Chest', command: 'Relax chest and legs', duration: 15, type: 'hold' },
-              { name: 'Clear Mind', command: 'Mind blank', duration: 15, type: 'inhale' },
-              { name: 'Visualize', command: 'Picture a calm lake', duration: 20, type: 'hold' },
+              { name: 'Inhale', command: 'Inhale 3 steps', duration: 3, type: 'inhale' },
+              { name: 'Exhale', command: 'Exhale 2 steps', duration: 2, type: 'exhale' },
             ]
           }
         ];
 
-        // --- PRODUCTION AUDIO STRATEGY ---
-        // To use pre-generated files instead of the API, uncomment and populate this dictionary:
-        /*
-        const LOCAL_AUDIO_ASSETS = {
-            "Get ready": "./audio/get_ready.mp3",
-            "Breathe in": "./audio/breathe_in.mp3",
-            "Hold": "./audio/hold.mp3",
-            "Breathe out": "./audio/breathe_out.mp3",
-            "Deep breath in": "./audio/deep_breath_in.mp3",
-            // etc...
+        const CATEGORIES = [
+            { id: 'all', label: 'All Goals' },
+            { id: 'warmup', label: '🤸‍♀️ Warm-up' },
+            { id: 'running', label: '🏃‍♂️ Running' },
+            { id: 'stretching', label: '🧘‍♀️ Stretching' },
+            { id: 'cooldown', label: '🧊 Cool-down' },
+            { id: 'recovery', label: '🛌 Recovery' },
+            { id: 'focus', label: '🔥 Focus' }
+        ];
+
+        const BG_SOUNDS = {
+          none: { id: 'none', name: 'Silence', type: 'none', icon: <Icons.VolumeX className="w-4 h-4" /> },
+          nature: { id: 'nature', name: 'Nature', type: 'wind', icon: <Icons.Wind className="w-4 h-4" /> },
+          ocean: { id: 'ocean', name: 'Ocean', type: 'ocean', icon: <Icons.Droplets className="w-4 h-4" /> }
         };
-        */
-        const LOCAL_AUDIO_ASSETS = null; // Set to null to keep using API for now
+        const BG_SOUND_KEYS = Object.keys(BG_SOUNDS);
 
-        // ------------------------------------------------------------------
-        // UTILS: AI TTS & Audio Processing
-        // ------------------------------------------------------------------
-        const apiKey = ""; 
-
-        async function fetchWithRetry(url, options, retries = 3) {
-          const delays = [500, 1500, 3000];
-          for (let i = 0; i < retries; i++) {
-            try {
-              const response = await fetch(url, options);
-              if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-              return await response.json();
-            } catch (e) {
-              if (i === retries - 1) throw e;
-              await new Promise(res => setTimeout(res, delays[i]));
-            }
-          }
-        }
-
-        function createWavArrayBuffer(base64Data, sampleRate) {
-          const binaryString = atob(base64Data);
-          const len = binaryString.length;
-          const bytes = new Uint8Array(len);
-          for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); }
-          
-          const numChannels = 1;
-          const bitsPerSample = 16;
-          const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
-          const blockAlign = numChannels * (bitsPerSample / 8);
-          const dataSize = bytes.length;
-          const buffer = new ArrayBuffer(44 + dataSize);
-          const view = new DataView(buffer);
-
-          const writeString = (view, offset, string) => {
-            for (let i = 0; i < string.length; i++) { view.setUint8(offset + i, string.charCodeAt(i)); }
-          };
-
-          writeString(view, 0, 'RIFF');
-          view.setUint32(4, 36 + dataSize, true);
-          writeString(view, 8, 'WAVE');
-          writeString(view, 12, 'fmt ');
-          view.setUint32(16, 16, true);
-          view.setUint16(20, 1, true);
-          view.setUint16(22, numChannels, true);
-          view.setUint32(24, sampleRate, true);
-          view.setUint32(28, byteRate, true);
-          view.setUint16(32, blockAlign, true);
-          view.setUint16(34, bitsPerSample, true);
-          writeString(view, 36, 'data');
-          view.setUint32(40, dataSize, true);
-
-          const pcmView = new Uint8Array(buffer, 44);
-          pcmView.set(bytes);
-          return buffer;
-        }
-
-        const loadLocalAudio = async (url, audioCtx) => {
-           try {
-               const response = await fetch(url);
-               const arrayBuffer = await response.arrayBuffer();
-               return await audioCtx.decodeAudioData(arrayBuffer);
-           } catch(e) {
-               console.warn("Failed to load local audio:", e);
-               return null;
-           }
-        };
-
-        const generateGeminiTTS = async (text, voiceName, audioCtx) => {
-          if (LOCAL_AUDIO_ASSETS && LOCAL_AUDIO_ASSETS[text]) {
-              return await loadLocalAudio(LOCAL_AUDIO_ASSETS[text], audioCtx);
-          }
-          if (!apiKey) return null;
-
-          try {
-            const payload = {
-              contents: [{ parts: [{ text: `Say in a very close, soft, slow ASMR whisper: ${text}` }] }],
-              generationConfig: {
-                responseModalities: ["AUDIO"],
-                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } }
-              },
-              model: "gemini-2.5-flash-preview-tts"
-            };
-
-            const data = await fetchWithRetry(
-              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
-              { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
-            );
-
-            const inlineData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-            if (!inlineData) return null;
-
-            let sampleRate = 24000;
-            const rateMatch = (inlineData.mimeType || "").match(/rate=(\d+)/);
-            if (rateMatch) sampleRate = parseInt(rateMatch[1], 10);
-
-            const wavBuffer = createWavArrayBuffer(inlineData.data, sampleRate);
-            return await audioCtx.decodeAudioData(wavBuffer);
-          } catch (err) {
-            console.warn("Gemini TTS Error (Fallback will be used):", err);
-            return null;
-          }
-        };
-
-        // ------------------------------------------------------------------
-        // APP COMPONENT
-        // ------------------------------------------------------------------
         function App() {
           const [showSplash, setShowSplash] = useState(true);
+          const [showIntro, setShowIntro] = useState(false);
           const [activeExercise, setActiveExercise] = useState(null);
+          const [selectedCategory, setSelectedCategory] = useState('all');
           const [selectedBgSound, setSelectedBgSound] = useState('none');
           
           // Audio & Interaction Settings
@@ -278,9 +291,6 @@
           const [breathSoundEnabled, setBreathSoundEnabled] = useState(true);
           const [vibrationEnabled, setVibrationEnabled] = useState(true);
           const [isDimmed, setIsDimmed] = useState(false);
-          const [voiceProfile, setVoiceProfile] = useState('kore'); 
-          
-          const [isGeneratingVoice, setIsGeneratingVoice] = useState(false);
           
           // Runtime State
           const [isWarmup, setIsWarmup] = useState(false);
@@ -292,15 +302,10 @@
 
           const audioCtxRef = useRef(null);
           const breathSourceRef = useRef(null);
-          const activeVoiceSourceRef = useRef(null);
-          const aiVoiceCache = useRef({});
           const bgNodesRef = useRef({ source: null, gain: null, lfo: null });
-          const noiseBuffersRef = useRef({ pink: null, brown: null });
-          const abortLoadRef = useRef(false);
 
           useEffect(() => {
-            if (window.speechSynthesis) window.speechSynthesis.getVoices();
-            const timer = setTimeout(() => setShowSplash(false), 2500);
+            const timer = setTimeout(() => setShowSplash(false), 2000);
             return () => clearTimeout(timer);
           }, []);
 
@@ -315,25 +320,32 @@
             return audioCtxRef.current;
           };
 
-          const stopAudioNode = (sourceKey, gainKey) => {
-            if (audioCtxRef.current && audioCtxRef.current[sourceKey]) {
-              try { audioCtxRef.current[sourceKey].stop(); } catch(e){}
-              try { audioCtxRef.current[sourceKey].disconnect(); } catch(e){}
-              audioCtxRef.current[sourceKey] = null;
-            }
-          };
-
           const triggerVibration = (type) => {
             if (!vibrationEnabled || !navigator.vibrate) return;
-            // Different patterns for different phases
             if (type === 'inhale') navigator.vibrate([40, 60, 40]);
             else if (type === 'exhale') navigator.vibrate([50]);
-            else if (type === 'hold') navigator.vibrate([20]); // tiny bump
-            else if (type === 'warmup') navigator.vibrate([100]); // stronger bump
+            else if (type === 'hold') navigator.vibrate([20]); 
+            else if (type === 'warmup') navigator.vibrate([100]); 
+          };
+
+          const speakCommand = (text) => {
+            if (!voiceEnabled || !window.speechSynthesis) return;
+            window.speechSynthesis.cancel(); 
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9; 
+            utterance.volume = 0.8; 
+            
+            const voices = window.speechSynthesis.getVoices();
+            // Try to find a calming, clear voice (often Samantha on Mac, or standard Google US English)
+            const preferredVoice = voices.find(v => /samantha|female|girl/i.test(v.name)) || voices.find(v => v.lang === 'en-US');
+            
+            if (preferredVoice) utterance.voice = preferredVoice;
+            window.speechSynthesis.speak(utterance);
           };
 
           const getNoiseBuffer = (ctx, type) => {
-            if (noiseBuffersRef.current[type]) return noiseBuffersRef.current[type];
             const bufferSize = ctx.sampleRate * 3;
             const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
             const output = buffer.getChannelData(0);
@@ -351,7 +363,7 @@
                 output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
                 b6 = white * 0.115926;
               }
-            } else { 
+            } else { // brown
               let lastOut = 0;
               for (let i = 0; i < bufferSize; i++) {
                 let white = Math.random() * 2 - 1;
@@ -360,11 +372,9 @@
                 output[i] *= 3.5; 
               }
             }
-            noiseBuffersRef.current[type] = buffer;
             return buffer;
           };
 
-          // Background Ambience
           useEffect(() => {
             if (showSplash) return;
             const ctx = initAudioCtx();
@@ -388,11 +398,11 @@
             const source = ctx.createBufferSource();
             source.loop = true;
 
-            if (selectedBgSound === 'rain') {
+            if (selectedBgSound === 'nature') {
               source.buffer = getNoiseBuffer(ctx, 'pink');
               const filter = ctx.createBiquadFilter();
               filter.type = 'lowpass';
-              filter.frequency.value = 1000;
+              filter.frequency.value = 1200;
               source.connect(filter);
               filter.connect(masterGain);
             } else if (selectedBgSound === 'ocean') {
@@ -414,14 +424,6 @@
               waveGain.connect(masterGain);
               lfo.start();
               bgNodesRef.current.lfo = lfo;
-            } else if (selectedBgSound === 'wind') {
-              source.buffer = getNoiseBuffer(ctx, 'brown');
-              const filter = ctx.createBiquadFilter();
-              filter.type = 'bandpass';
-              filter.frequency.value = 600;
-              filter.Q.value = 0.6;
-              source.connect(filter);
-              filter.connect(masterGain);
             }
 
             source.start();
@@ -450,8 +452,8 @@
               osc.frequency.setValueAtTime(45, now); 
               const gain = ctx.createGain();
               gain.gain.setValueAtTime(0, now);
-              gain.gain.linearRampToValueAtTime(0.06, now + 0.5); 
-              gain.gain.setValueAtTime(0.06, now + Math.max(0.5, durationSecs - 0.5));
+              gain.gain.linearRampToValueAtTime(0.04, now + 0.5); 
+              gain.gain.setValueAtTime(0.04, now + Math.max(0.5, durationSecs - 0.5));
               gain.gain.linearRampToValueAtTime(0, now + durationSecs); 
               
               osc.connect(gain);
@@ -480,11 +482,11 @@
               filter.frequency.setValueAtTime(200, now);
               filter.frequency.exponentialRampToValueAtTime(900, now + durationSecs);
               gainNode.gain.setValueAtTime(0.01, now);
-              gainNode.gain.linearRampToValueAtTime(0.4, now + durationSecs);
+              gainNode.gain.linearRampToValueAtTime(0.3, now + durationSecs);
             } else { 
               filter.frequency.setValueAtTime(900, now);
               filter.frequency.exponentialRampToValueAtTime(150, now + durationSecs);
-              gainNode.gain.setValueAtTime(0.4, now);
+              gainNode.gain.setValueAtTime(0.3, now);
               gainNode.gain.linearRampToValueAtTime(0.01, now + durationSecs);
             }
 
@@ -493,55 +495,6 @@
             breathSourceRef.current = source;
           };
 
-          const speakCommand = (text) => {
-            if (!voiceEnabled) return;
-
-            if (activeVoiceSourceRef.current) {
-              try { activeVoiceSourceRef.current.stop(); } catch(e){}
-            }
-            if (window.speechSynthesis) window.speechSynthesis.cancel(); 
-
-            if (voiceProfile === 'kore' || voiceProfile === 'fenrir') {
-              const cacheKey = `${voiceProfile}_${text}`;
-              const buffer = aiVoiceCache.current[cacheKey];
-              
-              if (buffer && audioCtxRef.current) {
-                const source = audioCtxRef.current.createBufferSource();
-                source.buffer = buffer;
-                const gainNode = audioCtxRef.current.createGain();
-                gainNode.gain.value = 1.4; // Make whisper clear
-                source.connect(gainNode);
-                gainNode.connect(audioCtxRef.current.destination);
-                
-                source.start(0);
-                activeVoiceSourceRef.current = source;
-                return; 
-              }
-            }
-            
-            // Standard Fallback
-            if (!window.speechSynthesis) return;
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'en-US';
-            utterance.rate = 0.85; 
-            utterance.volume = 0.8; 
-            
-            const voices = window.speechSynthesis.getVoices();
-            let preferredVoice = null;
-            
-            if (voiceProfile === 'std_female' || voiceProfile === 'kore') {
-              utterance.pitch = 1.05; 
-              preferredVoice = voices.find(v => /samantha|victoria|karen|female|girl/i.test(v.name)) || voices.find(v => v.lang === 'en-US');
-            } else {
-              utterance.pitch = 0.7; 
-              preferredVoice = voices.find(v => /david|daniel|arthur|alex|male|boy/i.test(v.name)) || voices.find(v => v.lang === 'en-GB' || v.lang === 'en-US');
-            }
-            
-            if (preferredVoice) utterance.voice = preferredVoice;
-            window.speechSynthesis.speak(utterance);
-          };
-
-          // Warmup Logic
           useEffect(() => {
             let timer;
             if (isWarmup) {
@@ -564,7 +517,6 @@
             return () => clearTimeout(timer);
           }, [isWarmup, warmupTimeLeft, activeExercise]);
 
-          // Main Exercise Logic
           useEffect(() => {
             let timer;
             if (isRunning && activeExercise && !isWarmup) {
@@ -584,61 +536,38 @@
               }
             }
             return () => clearTimeout(timer);
-          }, [isRunning, timeLeft, currentPhaseIndex, activeExercise, isWarmup, voiceEnabled, breathSoundEnabled, voiceProfile]);
+          }, [isRunning, timeLeft, currentPhaseIndex, activeExercise, isWarmup, voiceEnabled, breathSoundEnabled]);
 
           const handleGlobalInteraction = () => {
             if (!showSplash) initAudioCtx();
-            // Undim screen if tapped anywhere
             if (isDimmed) setIsDimmed(false);
           };
 
-          const startExercise = async (ex) => {
-            if (isGeneratingVoice) return;
-            const ctx = initAudioCtx();
-            abortLoadRef.current = false;
-
-            if (voiceProfile === 'kore' || voiceProfile === 'fenrir') {
-              setIsGeneratingVoice(true);
-              const uniqueCommands = ["Get ready", ...new Set(ex.phases.map(p => p.command))];
-              const aiVoiceName = voiceProfile === 'kore' ? 'Kore' : 'Fenrir';
-              
-              for (let i = 0; i < uniqueCommands.length; i++) {
-                if (abortLoadRef.current) break;
-                const cmd = uniqueCommands[i];
-                const cacheKey = `${voiceProfile}_${cmd}`;
-                if (!aiVoiceCache.current[cacheKey]) {
-                  if (i > 0 && !LOCAL_AUDIO_ASSETS) await new Promise(r => setTimeout(r, 400)); 
-                  const buffer = await generateGeminiTTS(cmd, aiVoiceName, ctx);
-                  if (buffer) aiVoiceCache.current[cacheKey] = buffer;
-                }
-              }
-              setIsGeneratingVoice(false);
-            }
-
-            if (abortLoadRef.current) return;
-
+          const startExercise = (ex) => {
             setActiveExercise(ex);
+            setShowIntro(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          };
+
+          const beginSession = () => {
+            initAudioCtx();
+            setShowIntro(false);
             setCurrentPhaseIndex(0);
             setCycles(0);
-            
-            // Start Warmup Sequence
             setIsWarmup(true);
             setWarmupTimeLeft(3);
             setIsRunning(false);
             speakCommand("Get ready");
-            
-            if (ex.id === 'sleep' && selectedBgSound === 'none') setSelectedBgSound('ocean');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           };
 
           const togglePause = (e) => {
-            e.stopPropagation(); // Prevent undimming immediately if user just wants to pause
+            e.stopPropagation();
             if (isRunning || isWarmup) {
               if (window.speechSynthesis) window.speechSynthesis.cancel();
-              if (activeVoiceSourceRef.current) { try { activeVoiceSourceRef.current.stop(); } catch(e){} }
               if (breathSourceRef.current) { try { breathSourceRef.current.stop(); } catch(e){} }
               setIsRunning(false);
-              setIsWarmup(false); // Pause cancels warmup, resumes directly into exercise
+              setIsWarmup(false); 
             } else if (activeExercise) {
               initAudioCtx();
               setIsRunning(true);
@@ -648,11 +577,8 @@
           };
 
           const haltEverything = () => {
-            abortLoadRef.current = true;
             if (window.speechSynthesis) window.speechSynthesis.cancel();
-            if (activeVoiceSourceRef.current) { try { activeVoiceSourceRef.current.stop(); } catch(e){} }
             if (breathSourceRef.current) { try { breathSourceRef.current.stop(); } catch(e){} }
-            setIsGeneratingVoice(false);
             setIsRunning(false);
             setIsWarmup(false);
           };
@@ -671,6 +597,7 @@
             if(e) e.stopPropagation();
             haltEverything();
             setActiveExercise(null);
+            setShowIntro(false);
             setIsDimmed(false);
             window.scrollTo({ top: 0, behavior: 'smooth' });
           };
@@ -683,15 +610,95 @@
             setSelectedBgSound(BG_SOUND_KEYS[nextIndex]);
           };
 
-          // --- UI RENDERING ---
+          const filteredExercises = useMemo(() => {
+              if (selectedCategory === 'all') return EXERCISES;
+              return EXERCISES.filter(ex => ex.category === selectedCategory);
+          }, [selectedCategory]);
 
           if (showSplash) {
             return (
               <div className="app-container flex flex-col items-center justify-center font-sans">
                 <div className="flex flex-col items-center animate-pulse">
-                  <h1 className="text-4xl font-light tracking-widest text-white mb-2">AuraBreath</h1>
-                  <div className="h-[1px] w-12 bg-zinc-700 rounded-full mb-4"></div>
-                  <h2 className="text-sm font-light text-zinc-500 uppercase tracking-widest">Calm & Focus</h2>
+                  <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+                      <Icons.Wind className="w-8 h-8 text-white" />
+                  </div>
+                  <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Fitbeet Flow+</h1>
+                  <h2 className="text-xs font-semibold text-emerald-500 uppercase tracking-widest">Masterclass</h2>
+                </div>
+              </div>
+            );
+          }
+
+          if (activeExercise && showIntro) {
+            return (
+              <div className="app-container flex flex-col font-sans overflow-y-auto custom-scrollbar relative bg-black">
+                
+                <div className={`relative pt-12 pb-6 px-6 ${activeExercise.color} bg-opacity-20 flex flex-col items-center justify-center rounded-b-[40px] shadow-lg shrink-0`}>
+                  <button onClick={exitExercise} className="absolute top-4 left-4 p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors backdrop-blur-sm">
+                    <Icons.ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <div className={`w-20 h-20 rounded-full ${activeExercise.color} flex items-center justify-center shadow-xl mb-4 text-white transform scale-110`}>
+                    {activeExercise.icon}
+                  </div>
+                  <h2 className="text-2xl font-bold text-center mb-1 text-white">{activeExercise.title}</h2>
+                  <p className="text-sm font-bold uppercase tracking-wider opacity-80 text-center text-white">{activeExercise.subtitle}</p>
+                </div>
+
+                <div className="p-6 flex-1 flex flex-col gap-6">
+                  
+                  {/* The Two Visual Cards Concept */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 flex flex-col items-center text-center shadow-lg">
+                      <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-emerald-400 mb-3 shadow-inner">
+                        <Icons.User className="w-5 h-5" />
+                      </div>
+                      <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Позиція тіла</h4>
+                      <p className="text-sm text-zinc-100 font-medium leading-tight">{activeExercise.details.position}</p>
+                    </div>
+                    <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4 flex flex-col items-center text-center shadow-lg">
+                      <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-blue-400 mb-3 shadow-inner">
+                        <Icons.Brain className="w-5 h-5" />
+                      </div>
+                      <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Фокус</h4>
+                      <p className="text-sm text-zinc-100 font-medium leading-tight">{activeExercise.details.focus}</p>
+                    </div>
+                  </div>
+
+                  {/* Deep Dive Description */}
+                  <div className="bg-zinc-900/50 rounded-2xl p-5 border border-zinc-800/50">
+                    <h3 className="flex items-center gap-2 text-white font-bold mb-3 text-sm">
+                      <Icons.Info className="w-4 h-4 text-emerald-500" /> Як це працює
+                    </h3>
+                    <p className="text-zinc-300 text-sm leading-relaxed">
+                      {activeExercise.details.instructions}
+                    </p>
+                  </div>
+
+                  {/* Breathing Phase Breakdown Timeline */}
+                  <div>
+                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3 px-1">Цикл дихання</h3>
+                    <div className="flex gap-1 h-10">
+                      {activeExercise.phases.map((phase, idx) => {
+                        const totalDuration = activeExercise.phases.reduce((acc, p) => acc + p.duration, 0);
+                        const widthPct = (phase.duration / totalDuration) * 100;
+                        const bgColor = phase.type === 'inhale' ? 'bg-white text-black' : phase.type === 'exhale' ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-400 border border-zinc-700';
+                        return (
+                          <div key={idx} style={{width: `${widthPct}%`}} className={`${bgColor} rounded-lg flex flex-col items-center justify-center text-xs overflow-hidden transition-all hover:opacity-80`}>
+                            <span className="font-bold">{phase.duration}s</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="flex justify-between mt-2 px-1 text-[9px] text-zinc-500 uppercase font-bold tracking-wider">
+                      {activeExercise.phases.map((p, i) => <span key={i}>{p.type}</span>)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 pt-0 mt-auto shrink-0 pb-8">
+                  <button onClick={beginSession} className={`w-full py-4 rounded-2xl ${activeExercise.color} text-white font-bold text-lg shadow-[0_10px_30px_rgba(0,0,0,0.5)] transform transition active:scale-95 flex items-center justify-center gap-2`}>
+                    <Icons.Play className="w-5 h-5" /> Почати практику
+                  </button>
                 </div>
               </div>
             );
@@ -703,182 +710,168 @@
             
             let circleScale = 1;
             if (!isWarmup) {
-                if (currentPhase.type === 'inhale') circleScale = 1 + (0.5 * progress);
-                if (currentPhase.type === 'exhale') circleScale = 1.5 - (0.5 * progress);
-                if (currentPhase.type === 'hold') circleScale = 1.5;
+                if (currentPhase.type === 'inhale') circleScale = 1 + (0.4 * progress);
+                if (currentPhase.type === 'exhale') circleScale = 1.4 - (0.4 * progress);
+                if (currentPhase.type === 'hold') circleScale = 1.4;
             }
 
             return (
               <div onClick={handleGlobalInteraction} className="app-container flex flex-col font-sans select-none overflow-hidden cursor-pointer">
-                
-                {/* Dimmer Overlay (Makes background truly black when dimmed) */}
                 <div className={`absolute inset-0 bg-black pointer-events-none transition-opacity duration-1000 z-0 ${isDimmed ? 'opacity-100' : 'opacity-0'}`}></div>
 
-                {/* UI Wrapper: Fades out when dimmed */}
                 <div className={`relative z-10 flex-1 flex flex-col transition-opacity duration-700 ${isDimmed ? 'opacity-0' : 'opacity-100'}`}>
-                    {/* Header */}
                     <div className="p-4 flex items-center justify-between shrink-0 mt-2">
                       <button onClick={exitExercise} className="p-2 -ml-2 rounded-full hover:bg-zinc-800 transition-colors">
-                        <ChevronLeft className="w-6 h-6" />
+                        <Icons.ChevronLeft className="w-6 h-6" />
                       </button>
                       <div className="text-center">
                         <h2 className="font-bold text-base uppercase tracking-widest">{activeExercise.title}</h2>
-                        <p className="text-zinc-500 text-[10px] uppercase tracking-tighter">Cycles: {cycles}</p>
+                        <p className="text-emerald-500 font-bold text-[10px] uppercase tracking-tighter">Cycles: {cycles}</p>
                       </div>
-                      {/* Dimmer Toggle */}
                       <button onClick={(e) => { e.stopPropagation(); setIsDimmed(true); }} className="p-2 -mr-2 rounded-full hover:bg-zinc-800 transition-colors text-zinc-400">
-                        <EyeOff className="w-5 h-5" />
+                        <Icons.EyeOff className="w-5 h-5" />
                       </button>
                     </div>
 
-                    {/* Quick Controls */}
                     <div className="flex justify-center flex-wrap gap-2 px-2 shrink-0 mb-2">
-                      <button onClick={(e) => { e.stopPropagation(); setVoiceEnabled(!voiceEnabled); }} className={`flex items-center gap-1.5 text-[9px] uppercase tracking-wider px-3 py-1.5 rounded-full border transition-all ${voiceEnabled ? 'border-zinc-400 bg-zinc-800 text-white' : 'border-zinc-800 text-zinc-500'}`}>
-                        {voiceEnabled ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />} Voice
+                      <button onClick={(e) => { e.stopPropagation(); setVoiceEnabled(!voiceEnabled); }} className={`flex items-center gap-1.5 text-[9px] uppercase font-bold tracking-wider px-3 py-1.5 rounded-full border transition-all ${voiceEnabled ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400' : 'border-zinc-800 text-zinc-500'}`}>
+                        {voiceEnabled ? <Icons.Volume2 className="w-3 h-3" /> : <Icons.VolumeX className="w-3 h-3" />} Voice
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); setBreathSoundEnabled(!breathSoundEnabled); }} className={`flex items-center gap-1.5 text-[9px] uppercase tracking-wider px-3 py-1.5 rounded-full border transition-all ${breathSoundEnabled ? 'border-zinc-400 bg-zinc-800 text-white' : 'border-zinc-800 text-zinc-500'}`}>
-                        <Wind className="w-3 h-3" /> Breath
+                      <button onClick={(e) => { e.stopPropagation(); setBreathSoundEnabled(!breathSoundEnabled); }} className={`flex items-center gap-1.5 text-[9px] uppercase font-bold tracking-wider px-3 py-1.5 rounded-full border transition-all ${breathSoundEnabled ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400' : 'border-zinc-800 text-zinc-500'}`}>
+                        <Icons.Wind className="w-3 h-3" /> Breath
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); setVibrationEnabled(!vibrationEnabled); }} className={`flex items-center gap-1.5 text-[9px] uppercase tracking-wider px-3 py-1.5 rounded-full border transition-all ${vibrationEnabled ? 'border-zinc-400 bg-zinc-800 text-white' : 'border-zinc-800 text-zinc-500'}`}>
-                        {vibrationEnabled ? <Vibrate className="w-3 h-3" /> : <VibrateOff className="w-3 h-3" />} Haptics
-                      </button>
-                      <button onClick={cycleAmbience} className={`flex items-center gap-1.5 text-[9px] uppercase tracking-wider px-3 py-1.5 rounded-full border transition-all ${selectedBgSound !== 'none' ? 'border-zinc-400 bg-zinc-800 text-white' : 'border-zinc-800 text-zinc-500'}`}>
-                        {BG_SOUNDS[selectedBgSound].icon} Amb
+                      <button onClick={(e) => { e.stopPropagation(); setVibrationEnabled(!vibrationEnabled); }} className={`flex items-center gap-1.5 text-[9px] uppercase font-bold tracking-wider px-3 py-1.5 rounded-full border transition-all ${vibrationEnabled ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400' : 'border-zinc-800 text-zinc-500'}`}>
+                        {vibrationEnabled ? <Icons.Vibrate className="w-3 h-3" /> : <Icons.VibrateOff className="w-3 h-3" />} Haptics
                       </button>
                     </div>
                 </div>
 
-                {/* Animation Area (Stays visible even when dimmed) */}
                 <div className="flex-1 flex flex-col items-center justify-center p-4 relative w-full z-20 mt-[-60px]">
-                  <div className="relative flex items-center justify-center w-56 h-56 my-6">
+                  <div className="relative flex items-center justify-center w-64 h-64 my-6">
                     
                     <div 
-                      className={`absolute inset-0 rounded-full blur-[60px] transition-all duration-100 ease-linear ${activeExercise.color} ${isDimmed ? 'opacity-10' : 'opacity-30'}`}
+                      className={`absolute inset-0 rounded-full blur-[70px] transition-all duration-100 ease-linear ${activeExercise.color} ${isDimmed ? 'opacity-10' : 'opacity-20'}`}
                       style={{ transform: `scale(${circleScale * 1.15})` }}
                     />
                     
-                    <svg className={`absolute inset-0 w-full h-full -rotate-90 z-10 overflow-visible transition-opacity ${isDimmed ? 'opacity-30' : 'opacity-100'}`}>
-                        <circle cx="112" cy="112" r="110" fill="none" stroke="currentColor" strokeWidth="2" className="text-zinc-900" />
+                    <svg className={`absolute inset-0 w-full h-full -rotate-90 z-10 overflow-visible transition-opacity ${isDimmed ? 'opacity-20' : 'opacity-100'}`}>
+                        <circle cx="128" cy="128" r="126" fill="none" stroke="currentColor" strokeWidth="2" className="text-zinc-900" />
                         <circle
-                          cx="112" cy="112" r="110" fill="none" stroke="currentColor" strokeWidth="4"
-                          strokeDasharray={691} strokeDashoffset={691 * (1 - progress)}
+                          cx="128" cy="128" r="126" fill="none" stroke="currentColor" strokeWidth="4"
+                          strokeDasharray={792} strokeDashoffset={792 * (1 - progress)}
                           className={`transition-all duration-100 ease-linear ${
                             isWarmup ? 'text-zinc-500' :
-                            currentPhase.type === 'inhale' ? 'text-emerald-400' : 
-                            currentPhase.type === 'exhale' ? 'text-blue-400' : 'text-zinc-400'
+                            currentPhase.type === 'inhale' ? 'text-white' : 
+                            currentPhase.type === 'exhale' ? 'text-zinc-400' : 'text-emerald-400'
                           }`}
                         />
                     </svg>
                     
                     <div 
-                        className={`relative z-20 w-32 h-32 rounded-full flex items-center justify-center transition-all duration-100 ease-linear ${isWarmup ? 'bg-zinc-800' : activeExercise.color} shadow-[0_0_40px_rgba(0,0,0,0.5)] ${isDimmed ? 'opacity-50' : 'opacity-100'}`}
+                        className={`relative z-20 w-40 h-40 rounded-full flex items-center justify-center transition-all duration-100 ease-linear ${isWarmup ? 'bg-zinc-800' : activeExercise.color} shadow-[0_0_40px_rgba(0,0,0,0.4)] ${isDimmed ? 'opacity-40' : 'opacity-100'}`}
                         style={{ transform: `scale(${circleScale})` }}
                     >
-                        <div className="text-5xl font-light text-white">{isWarmup ? warmupTimeLeft : Math.ceil(timeLeft)}</div>
+                        <div className="text-6xl font-light text-white">{isWarmup ? warmupTimeLeft : Math.ceil(timeLeft)}</div>
                     </div>
                   </div>
 
-                  {/* Phase Text (Fades out when dimmed) */}
                   <div className={`mt-8 text-center transition-opacity duration-700 ${isDimmed ? 'opacity-0' : 'opacity-100'}`}>
-                    <h3 className="text-2xl font-black uppercase tracking-widest mb-1 min-h-[32px]">
+                    <h3 className="text-2xl font-bold tracking-tight mb-1 min-h-[32px]">
                       {isWarmup ? 'Get Ready' : currentPhase.name}
                     </h3>
-                    <p className="text-zinc-400 max-w-xs mx-auto italic text-sm min-h-[40px]">
+                    <p className="text-emerald-400 max-w-xs mx-auto font-medium text-sm min-h-[40px] uppercase tracking-wider">
                       {isWarmup ? 'Prepare to follow the guide' : currentPhase.command}
                     </p>
                   </div>
                 </div>
 
-                {/* Bottom Controls (Fades out when dimmed) */}
                 <div className={`p-6 flex items-center justify-center gap-6 z-10 shrink-0 mb-4 transition-opacity duration-700 ${isDimmed ? 'opacity-0' : 'opacity-100'}`}>
                   <button onClick={reset} className="p-4 rounded-full bg-zinc-900 text-zinc-400 hover:text-white transition-colors">
-                    <RefreshCw className="w-5 h-5" />
+                    <Icons.RefreshCw className="w-5 h-5" />
                   </button>
                   <button 
                     onClick={togglePause} 
-                    className={`p-6 rounded-full ${isRunning || isWarmup ? 'bg-zinc-800' : 'bg-white text-black'} transition-all transform active:scale-95 shadow-xl`}
+                    className={`p-6 rounded-full ${isRunning || isWarmup ? 'bg-zinc-800 text-white' : 'bg-emerald-500 text-white'} transition-all transform active:scale-95 shadow-xl hover:scale-105`}
                   >
-                    {isRunning || isWarmup ? <Pause className="w-8 h-8" fill="currentColor" /> : <Play className="w-8 h-8" fill="currentColor" />}
+                    {isRunning || isWarmup ? <Icons.Pause className="w-8 h-8" /> : <Icons.Play className="w-8 h-8" />}
                   </button>
-                  <div className="p-4 w-12 h-12" /> 
+                  <button onClick={cycleAmbience} className={`p-4 rounded-full bg-zinc-900 ${selectedBgSound !== 'none' ? 'text-emerald-400' : 'text-zinc-400'} hover:text-white transition-colors`}>
+                    {BG_SOUNDS[selectedBgSound].icon}
+                  </button>
                 </div>
               </div>
             );
           }
 
           return (
-            <div onClick={handleGlobalInteraction} className="app-container p-4 font-sans flex flex-col relative">
+            <div onClick={handleGlobalInteraction} className="app-container p-5 font-sans flex flex-col relative">
 
-              {isGeneratingVoice && (
-                <div className="absolute inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-6 text-center">
-                  <button onClick={() => setIsGeneratingVoice(false)} className="absolute top-6 right-6 p-2 text-zinc-500 hover:text-white">
-                     <X className="w-6 h-6" />
-                  </button>
-                  <Loader2 className="w-12 h-12 animate-spin text-emerald-500 mb-4" />
-                  <h3 className="font-bold text-lg uppercase tracking-widest text-white">Loading Aura Voice</h3>
-                  <p className="text-zinc-400 text-xs mt-2 leading-relaxed max-w-[250px]">
-                    Generating studio-quality therapeutic voice instructions...
-                  </p>
+              <header className="mb-6 mt-2">
+                <div className="flex items-center gap-3 mb-1">
+                    <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                        <Icons.Wind className="w-4 h-4 text-white" />
+                    </div>
+                    <h1 className="text-2xl font-bold tracking-tight text-white">
+                    Fitbeet Flow+
+                    </h1>
                 </div>
-              )}
-
-              <header className="mb-6 mt-4 shrink-0 text-center">
-                <h1 className="text-3xl font-light tracking-widest text-white leading-none mb-2">
-                  AuraBreath
-                </h1>
-                <div className="h-[1px] w-8 bg-zinc-700 rounded-full mx-auto"></div>
+                <p className="text-zinc-400 text-sm font-medium">What is your goal right now?</p>
               </header>
 
-              <div className="grid grid-cols-2 gap-3 mb-6 shrink-0">
-                <div className="bg-zinc-900/60 p-3 rounded-2xl border border-zinc-800/50 backdrop-blur-sm">
-                  <div className="flex items-center gap-1.5 mb-3 text-zinc-400 text-[9px] uppercase tracking-widest font-bold">
-                    <UserCircle className="w-3.5 h-3.5" /> Therapist Voice
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                     <button onClick={() => { setVoiceProfile('kore'); handleGlobalInteraction(); }} className={`py-2 rounded-xl border transition-all ${voiceProfile === 'kore' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400' : 'border-zinc-800/50 bg-black/50 text-zinc-500'}`}>
-                       <span className="text-[9px] uppercase tracking-wider font-bold block">AI Fem</span>
-                     </button>
-                     <button onClick={() => { setVoiceProfile('fenrir'); handleGlobalInteraction(); }} className={`py-2 rounded-xl border transition-all ${voiceProfile === 'fenrir' ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-zinc-800/50 bg-black/50 text-zinc-500'}`}>
-                       <span className="text-[9px] uppercase tracking-wider font-bold block">AI Male</span>
-                     </button>
-                  </div>
-                </div>
-
-                <div className="bg-zinc-900/60 p-3 rounded-2xl border border-zinc-800/50 backdrop-blur-sm">
-                  <div className="flex items-center gap-1.5 mb-3 text-zinc-400 text-[9px] uppercase tracking-widest font-bold">
-                    <Settings2 className="w-3.5 h-3.5" /> Ambience
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {Object.entries(BG_SOUNDS).map(([key, sound]) => (
-                      <button key={key} onClick={() => { setSelectedBgSound(key); handleGlobalInteraction(); }} className={`flex flex-col items-center justify-center py-1.5 rounded-xl border transition-all ${selectedBgSound === key ? 'border-zinc-400 bg-zinc-800 text-white' : 'border-zinc-800/50 bg-black/50 text-zinc-500'}`}>
-                        {React.cloneElement(sound.icon, { className: 'w-3.5 h-3.5 mb-0.5' })}
-                        <span className="text-[8px] uppercase tracking-wider text-center block">{sound.name}</span>
+              {/* User Flow / Categories */}
+              <div className="flex overflow-x-auto pb-4 -mx-5 px-5 gap-2 custom-scrollbar shrink-0">
+                  {CATEGORIES.map(cat => (
+                      <button 
+                          key={cat.id}
+                          onClick={() => setSelectedCategory(cat.id)}
+                          className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-all ${
+                              selectedCategory === cat.id 
+                              ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' 
+                              : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-zinc-600'
+                          }`}
+                      >
+                          {cat.label}
                       </button>
-                    ))}
-                  </div>
-                </div>
+                  ))}
               </div>
 
+              <div className="flex items-center justify-between mt-2 mb-4">
+                  <h2 className="text-zinc-300 font-bold uppercase tracking-wider text-xs">
+                      {selectedCategory === 'all' ? 'All Practices' : CATEGORIES.find(c=>c.id === selectedCategory).label}
+                  </h2>
+                  <span className="text-zinc-600 text-xs font-bold">{filteredExercises.length} sessions</span>
+              </div>
+
+              {/* Exercises List */}
               <div className="grid gap-3 pb-6 flex-1 overflow-y-auto pr-1 custom-scrollbar">
-                {EXERCISES.map((ex) => (
+                {filteredExercises.map((ex) => (
                   <button
                     key={ex.id}
                     onClick={() => startExercise(ex)}
-                    className="group relative flex items-center text-left bg-zinc-900/40 border border-zinc-800/80 p-4 rounded-2xl hover:border-zinc-600 hover:bg-zinc-800/50 transition-all active:scale-[0.98]"
+                    className="group relative flex items-center text-left bg-zinc-900/40 border border-zinc-800/80 p-4 rounded-2xl hover:border-emerald-500/50 hover:bg-zinc-800/80 transition-all active:scale-[0.98]"
                   >
-                    <div className={`w-12 h-12 rounded-xl ${ex.color} flex items-center justify-center mr-4 shadow-lg group-hover:scale-105 transition-transform shrink-0`}>
+                    <div className={`w-14 h-14 rounded-2xl ${ex.color} flex items-center justify-center mr-4 shadow-lg group-hover:scale-105 transition-transform shrink-0`}>
                       {ex.icon}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-[15px] leading-tight uppercase tracking-widest truncate mb-1">{ex.title}</h3>
-                      <p className="text-zinc-500 text-[10px] uppercase tracking-widest truncate">{ex.subtitle}</p>
+                    <div className="flex-1 min-w-0 pr-2">
+                      <h3 className="font-bold text-base text-zinc-100 leading-tight truncate mb-1">{ex.title}</h3>
+                      <p className="text-emerald-500 font-bold text-[10px] uppercase tracking-wider truncate mb-1">{ex.subtitle}</p>
+                      <p className="text-zinc-500 text-xs leading-snug line-clamp-2">{ex.description}</p>
                     </div>
-                    <div className="text-zinc-700 group-hover:text-zinc-400 transition-colors ml-2 shrink-0">
-                      <Play className="w-5 h-5" fill="currentColor" />
+                    <div className="text-zinc-700 group-hover:text-emerald-500 transition-colors shrink-0">
+                      <Icons.Play className="w-6 h-6" />
                     </div>
                   </button>
                 ))}
               </div>
+              
+              {/* Bottom fitbeet-style branding/nav placeholder */}
+              <div className="mt-auto pt-4 border-t border-zinc-800/50 flex justify-center">
+                  <div className="flex items-center gap-1.5 text-zinc-600 text-xs font-bold uppercase tracking-widest">
+                      <Icons.Check className="w-4 h-4" /> Fitbeet Integrated
+                  </div>
+              </div>
+
             </div>
           );
         }
